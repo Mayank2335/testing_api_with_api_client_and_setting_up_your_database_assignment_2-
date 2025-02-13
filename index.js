@@ -1,82 +1,80 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const books = require('./data.json')
-require('dotenv').config()
-
+const data = require('./data.json');
 const app = express();
 app.use(bodyParser.json());
+app.use(express.json());
 
-// let books = data
+// ========================= Code Goes Here ==================== //
 
+app.post('/books' , (req, res) => {
+  const {book_id, title, author, genre, year, copies} = req.body;
 
-//get request -> To retrieve the data of all books
-
-app.get('/books', (req,res)=>{
-  return res.json(books)
-})
-
-//get request -> to retrieve the data of a particular book by id
-
-app.get('/books/:id', (req,res)=>{
-  const id = (req.params.id)
-  const reqBook = books.find(book=> book.book_id === id)
-
-  if (!reqBook) {
-    return res.status(404).json({ error: 'Book not found.' });
-}
-
-  return res.status(200).json(reqBook)
-})
-
-//post requiest -> to add new data to the data.json file
-
-app.post('/books', (req,res)=>{
-
-  const {book_id, title, author, genre, year, copies} = req.body
-
-  if(!book_id || !title || !author || !genre || !year || !copies){
-    return res.status(400).json('Enter all details')
+  if (!book_id || !title || !author || !genre || !year || !copies) {
+    return res.status(400).json({message: "Bad request need body"})
   }
 
-  const AddedBook = {book_id, title, author, genre, year, copies}
+  const newBook = { book_id, title, author, genre, year, copies }
 
-  books.push(AddedBook);
-
-
+  data.push(newBook)
 
   return res.status(201).json({
-    success: true,
-    New_Book: AddedBook,
+    success:true,
+    Book:newBook
   })
+})
+
+// ============================= GET REQUEST ======================= // 
+
+app.get('/books', (req, res) => {
+  try {
+    res.status(200).json(data);
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+})
+
+// ====================== GET REQUEST FOR ID ====================== //
+app.get('/books/:id', (req, res) => {
+
+  const book = data.find(e => e.book_id === req.params.id)
+
+  if (!book) {
+    return res.status(404).json({message: "Book not found"})
+  }
+
+  res.status(200).json(book);
+})
+
+// ============================== PUT REQUEST ================================ //
+
+app.put('/books/:id', (req, res) => {
+  const index = data.findIndex(e => e.book_id === req.params.id);
+
+  if (index === -1){
+    return res.status(404).json("Book not found")
+  }
+
+  data[index] = {...data[index], ...req.body}
+
+  res.status(200).json(data[index]);
 
 })
 
-//put request -> to update the existing data
+// =============================== DELETE REQUEST ================================ //
 
-app.put('/books/:id', (req, res) => {
-  const bookIndex = books.findIndex(b => b.book_id === req.params.id);
-
-  if (bookIndex === -1) {
-      return res.status(404).json({ error: 'Book not found.' });
-  }
-
-  const updatedBook = { ...books[bookIndex], ...req.body };
-  books[bookIndex] = updatedBook;
-
-  res.status(200).json(updatedBook);
-});
-
-// delete request -> delete a book data by id
 app.delete('/books/:id', (req, res) => {
-  const bookIndex = books.findIndex(b => b.book_id === req.params.id);
+  const del = data.findIndex(e => e.book_id === req.params.id );
 
-  if (bookIndex === -1) {
-      return res.status(404).json({ error: 'Book not found.' });
+  if(del === -1){
+    return res.status(404).json("Book doesn't exist")
   }
 
-  books.splice(bookIndex, 1);
-  res.status(200).json({ message: 'Book deleted successfully.' });
-});
+  data.splice(del, 1);
+
+  res.status(200).json({message: "Book deleted successfully"});
+
+})
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
